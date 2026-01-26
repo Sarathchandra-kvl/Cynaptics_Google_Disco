@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+  <!-- Add Font Awesome for icons (optional, or use emoji) -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="logo">
+        <span class="icon">⚡</span>
+        <h1>TabFlow <span class="badge">Groq</span></h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Settings Panel (Hidden by default) -->
+    <div id="settingsPanel" class="panel hidden">
+      <div class="input-group">
+        <label>Groq API Key</label>
+        <input type="password" id="apiKey" placeholder="gsk_...">
+      </div>
+      <button id="saveKeyBtn" class="btn-secondary">Save Key</button>
+      <p id="keyStatus" class="status-text"></p>
+    </div>
+
+    <!-- Main Action Area -->
+    <div class="main-actions">
+      <button id="analyzeBtn" class="btn-primary">
+        <span class="btn-text">Generate Action Plan</span>
+        <div class="loader hidden"></div>
+      </button>
+    </div>
+
+    <!-- Results Area -->
+    <div id="resultContainer" class="results-area hidden">
+      <div class="result-header">
+        <h2>Your Game Plan</h2>
+        <button id="copyBtn" class="icon-btn-small">📋</button>
+      </div>
+      <div id="resultContent" class="markdown-body"></div>
+    </div>
+  </div>
+  <script src="marked.min.js"></script> <!-- Optional: if you want to render Markdown properly -->
+  <script src="popup.js"></script>
+</body>
+</html>

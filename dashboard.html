@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GenTab Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --accent: #3b82f6;
+        }
+        body {
+            background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+            margin: 0; display: flex; height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 250px; background: var(--card); padding: 20px; border-right: 1px solid #334155;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .sidebar h2 { margin-top: 0; font-size: 1.2rem; color: var(--accent); }
+        .history-item {
+            padding: 10px; background: #334155; border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+        }
+        .history-item:hover { background: #475569; }
+        
+        /* Main Content */
+        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .card {
+            background: var(--card); padding: 24px; border-radius: 12px; margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px; 
+            font-size: 0.8rem; background: #059669; color: #fff; margin-bottom: 10px;
+        }
+        pre { white-space: pre-wrap; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>📂 History</h2>
+        <div id="historyList"></div>
+        <button id="clearHistory" style="margin-top:auto; padding:8px;">Clear History</button>
+    </div>
+
+    <div class="main">
+        <div class="container">
+            <h1>🚀 GenTab Intelligence Center</h1>
+            <div id="latestResult" class="card">
+                <h3>Latest Analysis</h3>
+                <div id="loading" style="display:none;">Thinking... 🧠</div>
+                <div id="content">No analysis yet. Click the extension icon to start!</div>
+            </div>
+        </div>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html>
