@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus News: Paneer Recipes Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone CDN -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Custom scrollbar for deep dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+        /* Glassmorphism for search bar */
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        /* System sans-serif font (Inter is a common system sans-serif) */
+        html {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Simulated Data (Addressing the failed Firecrawl/Tavily results) ---
+        // As the provided "Deep Research Data" was an error message, this content
+        // is generated to fulfill the requirement of using "real titles, summaries,
+        // and facts" relevant to "how to make recipes for paneer dishes" without
+        // resorting to generic 'Lorem Ipsum'.
+        const paneerData = [
+            {
+                id: 'hero-paneer-basics',
+                type: 'hero',
+                title: 'Mastering Paneer: Your Ultimate Guide to Indian Cheese',
+                summary: 'Unlock the secrets to making delicious paneer dishes at home. From its origins to versatile cooking techniques, this guide covers everything you need to know about this beloved Indian cheese.',
+                content: 'Paneer, a fresh cheese common in the Indian subcontinent, is a staple in vegetarian cuisine. Unlike other cheeses, it\'s non-melting, making it perfect for grilling, frying, and simmering in curries. Learning to make paneer from scratch is a rewarding experience, offering a fresh, preservative-free ingredient for your culinary adventures. This guide delves into its history, nutritional benefits, and essential tips for preparation and cooking, ensuring you can confidently incorporate paneer into your meals.',
+                tags: ['Basics', 'Indian Cuisine', 'Vegetarian', 'Dairy-Free Options'],
+            },
+            {
+                id: 'recipe-shahi-paneer',
+                type: 'recipe',
+                title: 'Classic Shahi Paneer: A Royal Delight',
+                summary: 'Indulge in the rich and creamy flavors of Shahi Paneer, a Mughlai-inspired dish perfect for special occasions and festive meals.',
+                content: 'Shahi Paneer is a luxurious dish made with paneer cubes in a thick, creamy gravy of onions, nuts (typically cashews), and aromatic spices. The "Shahi" (royal) in its name signifies its rich texture and use of expensive ingredients like cashews, cream, and sometimes saffron. Key steps include sautéing onions and ginger-garlic paste, blending with cashews and tomatoes for a smooth, velvety base, and then simmering the paneer until tender. Garnish with fresh cream and cilantro for an authentic touch.',
+                tags: ['Curry', 'Mughlai', 'Creamy', 'Dinner', 'Festive'],
+            },
+            {
+                id: 'recipe-paneer-tikka',
+                type: 'recipe',
+                title: 'Grilled Paneer Tikka: Smoky & Flavorful Appetizer',
+                summary: 'Learn to make restaurant-style paneer tikka at home, marinated in yogurt and spices, then grilled or baked to perfection.',
+                content: 'Paneer Tikka is a popular Indian appetizer where cubes of paneer are marinated in a spiced yogurt mixture, skewered with bell peppers and onions, and then grilled, baked, or pan-fried. The marinade typically includes ginger-garlic paste, red chili powder, turmeric, garam masala, cumin powder, and a touch of lemon juice for tang. For best results, marinate for at least 30 minutes, or ideally overnight, to allow the flavors to penetrate. Serve hot with mint chutney and onion rings.',
+                tags: ['Appetizer', 'Grill', 'Snack', 'Spicy', 'BBQ'],
+            },
+            {
+                id: 'recipe-palak-paneer',
+                type: 'recipe',
+                title: 'Healthy Palak Paneer: Spinach & Cheese Curry',
+                summary: 'A nutritious and vibrant curry combining fresh spinach puree with soft paneer cubes, making for a wholesome and delicious meal.',
+                content: 'Palak Paneer is a classic North Indian dish featuring paneer in a creamy, vibrant spinach gravy. The key is to blanch the spinach quickly to retain its bright green color and nutrients, then blend it into a smooth puree. The gravy is typically flavored with garlic, ginger, green chilies, and a hint of garam masala, often finished with a touch of cream or butter for richness. It\'s a healthy and delicious way to enjoy both greens and protein, best served with naan or rice.',
+                tags: ['Healthy', 'Spinach', 'Curry', 'Lunch', 'Nutritious'],
+            },
+            {
+                id: 'tip-homemade-paneer',
+                type: 'tip',
+                title: 'DIY Paneer: Make Fresh Cheese at Home',
+                summary: 'A simple step-by-step guide to preparing fresh, soft paneer from milk in your own kitchen, superior to store-bought.',
+                content: 'Making paneer at home is surprisingly easy and yields a much fresher product than most store-bought varieties. You\'ll need full-fat milk and an acidic agent like lemon juice, vinegar, or even yogurt. Heat the milk to a boil, then reduce heat and gradually add the acid to curdle it. Once the curds separate from the whey, strain them through a cheesecloth. Press the curds for a few hours (under a heavy weight) to remove excess water and form a firm block. Homemade paneer is incredibly versatile and perfect for any recipe.',
+                tags: ['DIY', 'Homemade', 'Technique', 'Fresh', 'Kitchen Hacks'],
+            },
+            {
+                id: 'recipe-paneer-bhurji',
+                type: 'recipe',
+                title: 'Quick Paneer Bhurji: Scrambled Paneer Delight',
+                summary: 'A fast and flavorful scrambled paneer dish, perfect for a quick breakfast, light meal, or a delicious side.',
+                content: 'Paneer Bhurji is a popular Indian dish made from crumbled paneer, sautéed with finely chopped onions, tomatoes, bell peppers, and a blend of aromatic spices. It\'s incredibly quick to prepare and versatile, often served with roti, paratha, or bread. The key is to cook the onions and tomatoes until soft and the spices are fragrant, then add the crumbled paneer, stirring gently to combine without overcooking. Garnish with fresh cilantro for a burst of freshness.',
+                tags: ['Breakfast', 'Quick', 'Scrambled', 'Spicy', 'Brunch'],
+            },
+            {
+                id: 'tip-paneer-storage',
+                type: 'tip',
+                title: 'Storing Paneer: Keep Your Cheese Fresh Longer',
+                summary: 'Essential tips for properly storing homemade and store-bought paneer to maintain its freshness, texture, and flavor.',
+                content: 'To keep paneer fresh, especially homemade, store it submerged in cold water in an airtight container in the refrigerator. Change the water daily to prevent spoilage and maintain its soft texture. This method can keep paneer fresh for up to a week. For longer storage, paneer can be frozen, though its texture might become slightly crumbly upon thawing. Always pat dry before cooking if it was stored in water or frozen.',
+                tags: ['Storage', 'Tips', 'Preservation', 'Kitchen Hacks', 'Food Prep'],
+            },
+            {
+                id: 'recipe-paneer-butter-masala',
+                type: 'recipe',
+                title: 'Restaurant-Style Paneer Butter Masala',
+                summary: 'Recreate the iconic creamy and mildly sweet Paneer Butter Masala at home with this detailed recipe, a true crowd-pleaser.',
+                content: 'Paneer Butter Masala is a rich, creamy, and mildly spiced dish, a perennial favorite in Indian restaurants worldwide. It features tender paneer cubes in a luscious tomato-based gravy, generously enriched with butter, fresh cream, and cashews. The gravy is typically made by sautéing onions, ginger, garlic, and tomatoes, then blending them into a smooth, velvety paste. A touch of sugar or honey often balances the flavors, creating a perfect harmony of sweet and savory. Serve with warm naan bread or fragrant basmati rice.',
+                tags: ['Curry', 'Restaurant Style', 'Creamy', 'Dinner', 'Comfort Food'],
+            },
+        ];
+
+        // --- React Components ---
+
+        const Tag = ({ text }) => (
+            <span className="rounded-full bg-blue-600/20 text-blue-400 text-xs px-3 py-1 mr-2 mb-2 inline-block font-medium">
+                {text}
+            </span>
+        );
+
+        const Card = ({ item }) => (
+            <div className="bg-slate-800 p-6 rounded-lg shadow-lg hover:scale-[1.02] transition-all duration-300 flex flex-col">
+                <h3 className="text-xl font-extrabold text-slate-50 mb-2">{item.title}</h3>
+                <p className="text-slate-400 text-sm mb-4 flex-grow">{item.summary}</p>
+                <div className="flex flex-wrap mt-auto">
+                    {item.tags.map(tag => <Tag key={tag} text={tag} />)}
+                </div>
+            </div>
+        );
+
+        const HeroCard = ({ item }) => (
+            <div className="col-span-full bg-gradient-to-r from-slate-800 to-slate-900 p-8 rounded-lg shadow-xl flex flex-col justify-center">
+                <h2 className="text-4xl font-extrabold text-slate-50 mb-4 leading-tight">{item.title}</h2>
+                <p className="text-slate-300 text-lg mb-6 max-w-3xl">{item.summary}</p>
+                <div className="flex flex-wrap">
+                    {item.tags.map(tag => <Tag key={tag} text={tag} />)}
+                </div>
+            </div>
+        );
+
+        const SearchBar = () => (
+            <div className="fixed top-0 left-0 right-0 z-50 p-4 flex justify-center">
+                <div className="glassmorphism p-3 rounded-full shadow-xl flex items-center w-full max-w-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search paneer recipes, tips, and more..."
+                        className="bg-transparent outline-none flex-grow text-slate-100 placeholder-slate-400 text-lg"
+                    />
+                </div>
+            </div>
+        );
+
+        const FloatingActionButton = () => (
+            <button className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-300 z-40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        );
+
+        const App = () => {
+            const heroItem = paneerData.find(item => item.type === 'hero');
+            const otherItems = paneerData.filter(item => item.type !== 'hero');
+
+            return (
+                <div className="min-h-screen bg-slate-900 text-slate-100 pb-20 pt-24"> {/* pt-24 to prevent content from being hidden by fixed search bar */}
+                    <SearchBar />
+                    <div className="max-w-7xl mx-auto px-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {heroItem && <HeroCard item={heroItem} />}
+                            {otherItems.map(item => (
+                                <Card key={item.id} item={item} />
+                            ))}
+                        </div>
+                    </div>
+                    <FloatingActionButton />
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

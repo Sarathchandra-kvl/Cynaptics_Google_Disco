@@ -1,56 +1,66 @@
-// Toggle Settings
-document.getElementById('settingsBtn').addEventListener('click', () => {
-    document.getElementById('settingsPanel').classList.toggle('hidden');
-});
+document.addEventListener('DOMContentLoaded', () => {
+    const chatHistory = document.getElementById('chat-history');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
 
-// Save API Key
-document.getElementById('saveKeyBtn').addEventListener('click', () => {
-    const key = document.getElementById('apiKey').value;
-    if (!key.startsWith('gsk_')) {
-        alert('Invalid Groq Key! It should start with "gsk_"');
-        return;
-    }
+    // Scroll to bottom
+    const scrollToBottom = () => {
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    };
 
-    chrome.storage.local.set({ 'groq_api_key': key }, () => {
-        document.getElementById('keyStatus').innerText = 'Key Saved ✅';
-        setTimeout(() => document.getElementById('settingsPanel').classList.add('hidden'), 1000);
+    const addMessage = (text, isUser = false) => {
+        const div = document.createElement('div');
+        div.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+        div.textContent = text;
+        chatHistory.appendChild(div);
+        scrollToBottom();
+    };
+
+    const sendMessage = async () => {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        addMessage(text, true);
+        userInput.value = '';
+
+        try {
+            // Get Tabs
+            const tabs = await chrome.tabs.query({});
+            const tabData = tabs.map(t => ({
+                id: t.id,
+                title: t.title,
+                url: t.url
+            }));
+
+            // Send to Backend
+            const response = await fetch('http://localhost:8000/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: text,
+                    tabs: tabData
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.response) {
+                addMessage(data.response);
+            }
+
+            if (data.action === 'open_dashboard' && data.dashboard_url) {
+                chrome.tabs.create({ url: data.dashboard_url });
+                addMessage("Opening dashboard in a new tab...");
+            }
+
+        } catch (error) {
+            console.error(error);
+            addMessage("Error connecting to the Intelligence Layer. Is the Python server running?", false);
+        }
+    };
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
     });
 });
-
-// Main Analyze Logic
-document.getElementById('analyzeBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('analyzeBtn');
-    const loader = btn.querySelector('.loader');
-    const btnText = btn.querySelector('.btn-text');
-    const resultContainer = document.getElementById('resultContainer');
-
-    // UI Loading State
-    btnText.innerText = 'Analyzing Tabs...';
-    loader.classList.remove('hidden');
-    if (resultContainer) resultContainer.classList.add('hidden');
-
-    // Check for Key
-    const data = await chrome.storage.local.get('groq_api_key');
-    if (!data.groq_api_key) {
-        alert('Please set your Groq API Key in settings first!');
-        resetUI();
-        return;
-    }
-
-    // Send to Background
-    chrome.runtime.sendMessage({
-        action: 'processTabs',
-        apiKey: data.groq_api_key
-    });
-
-    // Close the popup immediately so the Dashboard can open
-    window.close();
-});
-
-function resetUI() {
-    const btn = document.getElementById('analyzeBtn');
-    const loader = btn.querySelector('.loader');
-    const btnText = btn.querySelector('.btn-text');
-    btnText.innerText = 'Generate Action Plan';
-    loader.classList.add('hidden');
-}

@@ -1,5 +1,10 @@
 // background.js
 
+// Enable Side Panel on Action Click
+chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((error) => console.error(error));
+
 // 1. Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'processTabs') {
@@ -56,7 +61,7 @@ async function performAnalysis(apiKey) {
         // E. Save to History
         const historyData = await chrome.storage.local.get('analysisHistory');
         const history = historyData.analysisHistory || [];
-        
+
         history.unshift({
             timestamp: Date.now(),
             text: aiResponse
@@ -86,7 +91,7 @@ async function callGroq(apiKey, prompt) {
         body: JSON.stringify({
             // Model from your screenshot
             model: "qwen/qwen3-32b",
-            
+
             // Messages array
             messages: [
                 {
@@ -95,7 +100,7 @@ async function callGroq(apiKey, prompt) {
                 },
                 { role: "user", content: prompt }
             ],
-            
+
             // PARAMS from your screenshot:
             temperature: 0.6,               // As requested
             max_completion_tokens: 4096,    // Correct field for new models
@@ -106,10 +111,10 @@ async function callGroq(apiKey, prompt) {
     });
 
     const data = await response.json();
-    
+
     if (data.error) {
         throw new Error(data.error.message);
     }
-    
+
     return data.choices[0].message.content;
 }

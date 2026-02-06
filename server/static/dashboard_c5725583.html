@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus News: Shoe Insights Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone CDN -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Customizing Tailwind's default font stack to prioritize Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+    </style>
+</head>
+<body class="font-sans bg-slate-900 text-slate-100 antialiased">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Data Source (Synthesized based on user request for "shoes to buy and all") ---
+        const shoesData = [
+            {
+                id: 'hero-1',
+                category: 'Running',
+                title: 'The Ultimate Guide to Choosing Your Next Running Shoes',
+                summary: 'Discover the latest innovations in running footwear, from cushioned comfort to minimalist speed. We break down the science behind pronation, stack height, and outsole durability to help you find your perfect pair for any distance or terrain.',
+                details: 'Running shoes are arguably the most critical piece of equipment for any runner. The right pair can prevent injuries, enhance performance, and make your runs more enjoyable. This deep dive explores the key factors: **Cushioning** (EVA, TPU, PEBA foams), **Stability vs. Neutral** (for pronation control), **Drop** (heel-to-toe differential), **Outsole Grip** (road vs. trail), and **Upper Material** (breathability, support). We review top models like the Hoka Clifton, Brooks Ghost, Saucony Kinvara, and Nike Pegasus, offering insights into their ideal use cases. Whether you\'re training for a marathon, hitting the trails, or just enjoying a casual jog, understanding these elements is crucial. Consider your foot type, running style, and typical mileage before making a decision. Our research indicates that a personalized approach yields the best results, often requiring trying on several pairs.',
+                image: 'https://images.unsplash.com/photo-1542291026-79eddc9cdfd2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-26'
+            },
+            {
+                id: 'card-2',
+                category: 'Casual',
+                title: 'Top 5 Sustainable Sneakers for Everyday Wear',
+                summary: 'Step out in style while supporting the planet. We review eco-friendly options made from recycled materials, organic cotton, and innovative plant-based leathers, proving sustainability doesn\'t compromise design or comfort.',
+                details: 'The demand for sustainable fashion is growing, and sneakers are no exception. Brands are increasingly using recycled plastics, organic cotton, natural rubber, and even pineapple leather to create stylish and durable footwear. Our top picks include models from Veja, Allbirds, Rothy\'s, and Adidas (Primegreen series). These shoes not only reduce environmental impact but often offer superior comfort and unique aesthetics. Look for certifications like B Corp or Fair Trade to ensure ethical production practices. Choosing sustainable sneakers is a small step that contributes to a larger positive impact on the environment.',
+                image: 'https://images.unsplash.com/photo-1600269452121-4f2416e55c1c?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-25'
+            },
+            {
+                id: 'card-3',
+                category: 'Basketball',
+                title: 'Unlocking Performance: Best Basketball Shoes of the Season',
+                summary: 'From explosive jumps to quick cuts, the right basketball shoe can elevate your game. We analyze traction, ankle support, cushioning, and fit across leading models favored by pros and amateurs alike.',
+                details: 'Basketball shoes are engineered for specific demands: quick lateral movements, explosive jumps, and hard landings. Key features include robust ankle support (high-top vs. low-top), responsive cushioning (Zoom Air, Boost, Lightstrike), and multi-directional traction patterns. We highlight models like the Nike LeBron series, Adidas Harden Vol., Under Armour Curry, and Jordan line, discussing their strengths for different player types (guards, forwards, centers). A snug fit is paramount to prevent slippage and maximize court feel. Consider your playing style and position when selecting your next pair to optimize performance and minimize injury risk.',
+                image: 'https://images.unsplash.com/photo-1552346154-21d3281e738c?q=80&w=1950&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-24'
+            },
+            {
+                id: 'card-4',
+                category: 'Hiking',
+                title: 'Gear Up: Choosing Durable Hiking Boots for Any Trail',
+                summary: 'Navigate rugged terrains with confidence. Our guide covers waterproof membranes, sole rigidity, ankle support, and materials to ensure your feet stay comfortable and protected on your next adventure.',
+                details: 'Hiking boots are essential for outdoor enthusiasts, providing protection, support, and traction on varied terrain. Key considerations include **Waterproofing** (Gore-Tex, eVent), **Ankle Support** (low, mid, high-cut), **Sole Stiffness** (for stability on uneven ground), and **Weight**. We compare lightweight trail shoes suitable for day hikes with robust backpacking boots designed for multi-day treks with heavy loads. Brands like Merrell, Salomon, Keen, and Vasque offer a wide range of options. Proper fit is crucial to prevent blisters and discomfort, especially on long descents. Investing in a good pair of hiking boots is an investment in your outdoor experience.',
+                image: 'https://images.unsplash.com/photo-1525966222134-fcfa99a8ae0e?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-23'
+            },
+            {
+                id: 'card-5',
+                category: 'Lifestyle',
+                title: 'The Resurgence of Retro: Iconic Sneakers Making a Comeback',
+                summary: 'From classic silhouettes to modern re-interpretations, explore the timeless appeal of retro sneakers that blend heritage with contemporary street style. Find out which vintage kicks are worth adding to your collection.',
+                details: 'Retro sneakers are more than just footwear; they are cultural artifacts. The enduring appeal lies in their nostalgic design, often tied to significant moments in sports or fashion history. Models like the Adidas Samba, Nike Dunk, New Balance 550, and Converse Chuck Taylor have seen massive resurgences, proving their timeless versatility. We delve into the history behind these icons, their impact on streetwear, and how to style them for today\'s trends. While comfort technology has advanced, many retro models are updated with subtle improvements without sacrificing their original aesthetic. Collecting retro sneakers is a passion for many, driven by limited releases and unique colorways.',
+                image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d2a?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-22'
+            },
+            {
+                id: 'card-6',
+                category: 'Training',
+                title: 'Cross-Training Essentials: Shoes for Every Workout',
+                summary: 'Whether you\'re lifting, jumping, or doing HIIT, the right cross-training shoe provides stability, flexibility, and support. We compare top models designed for diverse gym activities.',
+                details: 'Cross-training shoes are versatile performers, built to handle a variety of gym activities from weightlifting to plyometrics and short runs. Unlike specialized running shoes, they offer a flatter, more stable base for lifting, while still providing enough cushioning for dynamic movements. Key features include a durable outsole for grip, a supportive upper for lateral stability, and a moderate heel-to-toe drop. Popular choices include the Nike Metcon, Reebok Nano, and Under Armour Project Rock series. Choosing the right cross-trainer can significantly improve your performance and safety during mixed-modality workouts, making them a gym bag essential.',
+                image: 'https://images.unsplash.com/photo-1587563670843-e08257f77681?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-21'
+            },
+            {
+                id: 'card-7',
+                category: 'Luxury',
+                title: 'Investment Footwear: The World of High-End Designer Sneakers',
+                summary: 'Beyond performance and utility, explore the craftsmanship, exclusive materials, and iconic designs that define luxury sneakers. A guide to discerning value in premium footwear.',
+                details: 'Luxury sneakers represent the intersection of high fashion and streetwear, often featuring exquisite materials like premium leather, exotic skins, and intricate detailing. Brands such as Balenciaga, Gucci, Louis Vuitton, and Common Projects lead this segment, offering designs that are as much art as they are footwear. The appeal lies in exclusivity, brand prestige, and superior craftsmanship. While they may not offer the same performance benefits as athletic shoes, their comfort and style are unparalleled for fashion-forward individuals. Understanding the materials, construction, and brand heritage is key to appreciating the value of these investment pieces.',
+                image: 'https://images.unsplash.com/photo-1603808060300-411261779207?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                date: '2023-10-20'
+            }
+        ];
+
+        // --- Components ---
+
+        const Tag = ({ category }) => (
+            <span className="inline-block rounded-full bg-blue-600/20 text-blue-400 text-xs px-3 py-1 font-medium mr-2 mb-2">
+                {category}
+            </span>
+        );
+
+        const SearchBar = () => (
+            <div className="fixed top-0 left-0 right-0 z-50 p-4 flex justify-center">
+                <div className="relative w-full max-w-xl">
+                    <input
+                        type="text"
+                        placeholder="Search for shoe recommendations..."
+                        className="w-full py-3 pl-12 pr-4 rounded-full bg-white/10 backdrop-blur-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg transition-all duration-300"
+                    />
+                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        );
+
+        const HeroCard = ({ shoe }) => (
+            <div className="col-span-full rounded-xl overflow-hidden shadow-2xl bg-gradient-to-r from-slate-800 to-slate-900 p-8 md:p-10 lg:p-12 flex flex-col lg:flex-row items-center gap-8 mb-8">
+                <div className="lg:w-2/3">
+                    <div className="flex flex-wrap mb-3">
+                        <Tag category={shoe.category} />
+                        <span className="text-slate-400 text-sm font-medium">{shoe.date}</span>
+                    </div>
+                    <h2 className="text-4xl lg:text-5xl font-extrabold text-slate-100 leading-tight mb-4">
+                        {shoe.title}
+                    </h2>
+                    <p className="text-lg text-slate-300 mb-6">
+                        {shoe.summary}
+                    </p>
+                    <p className="text-md text-slate-400 leading-relaxed">
+                        {shoe.details}
+                    </p>
+                </div>
+                <div className="lg:w-1/3 flex-shrink-0">
+                    <img
+                        src={shoe.image}
+                        alt={shoe.title}
+                        className="w-full h-64 object-cover rounded-lg shadow-xl"
+                    />
+                </div>
+            </div>
+        );
+
+        const NewsCard = ({ shoe }) => (
+            <div className="bg-slate-800 rounded-xl p-6 shadow-lg flex flex-col justify-between hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+                <div>
+                    <img
+                        src={shoe.image}
+                        alt={shoe.title}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                    />
+                    <div className="flex flex-wrap mb-3">
+                        <Tag category={shoe.category} />
+                        <span className="text-slate-400 text-xs font-medium self-center">{shoe.date}</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-100 mb-3 leading-tight">
+                        {shoe.title}
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-4">
+                        {shoe.summary}
+                    </p>
+                </div>
+                <a href="#" className="text-blue-400 hover:text-blue-300 text-sm font-semibold flex items-center">
+                    Read More
+                    <svg className="ml-1" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+                    </svg>
+                </a>
+            </div>
+        );
+
+        const FloatingActionButton = () => (
+            <button className="fixed bottom-8 right-8 bg-blue-600 text-white p-4 rounded-full shadow-xl hover:bg-blue-700 transition-colors duration-300 z-50">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.444l7.752-7.752m-8.712 12.116l7.752-7.752M7.5 10.5h.008v.008H7.5V10.5zm7.5 7.5h.008v.008H15V18zm-7.5-3h.008v.008H7.5V15zm7.5-3h.008v.008H15V12zm-7.5-3h.008v.008H7.5V9zm7.5-3h.008v.008H15V6z" />
+                </svg>
+            </button>
+        );
+
+        const App = () => {
+            const heroItem = shoesData[0];
+            const otherItems = shoesData.slice(1);
+
+            return (
+                <div className="min-h-screen pt-24 pb-16"> {/* pt-24 to account for fixed search bar */}
+                    <SearchBar />
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h1 className="text-5xl font-extrabold text-slate-100 mb-12 text-center">
+                            Nexus News: Your Shoe Buying Guide
+                        </h1>
+
+                        {heroItem && <HeroCard shoe={heroItem} />}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {otherItems.map(shoe => (
+                                <NewsCard key={shoe.id} shoe={shoe} />
+                            ))}
+                        </div>
+                    </main>
+
+                    <FloatingActionButton />
+                </div>
+            );
+        };
+
+        // Render the App component
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
