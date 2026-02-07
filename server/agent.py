@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from typing import Annotated, List, TypedDict, Union
 from typing_extensions import TypedDict
 
@@ -33,13 +34,7 @@ web_search_tool = TavilySearchResults(k=3)
 try:
     from firecrawl import Firecrawl
 except ImportError:
-    try:
-        from firecrawl import FirecrawlApp as Firecrawl
-    except ImportError:
-        Firecrawl = None
-
-# Initialize Tools
-web_search_tool = TavilySearchResults(k=3)
+    Firecrawl = None
 firecrawl_app = Firecrawl(api_key=FIRECRAWL_API_KEY) if (Firecrawl and FIRECRAWL_API_KEY) else None
 
 
@@ -60,9 +55,12 @@ def router_node(state: AgentState):
     last_message = messages[-1].content
     tab_context = state.get("tab_context", "")
     
-    # 1. Check for "Proactive Analysis" condition (Generic/Greetings)
+    # 1. Check for "Proactive Analysis" condition (Generic/Greetings or Auto-Trigger)
+    if last_message == "AUTO_ANALYZE_INIT":
+         return {"next_step": "analyze_tabs"}
+
     is_generic = len(messages) <= 1 and len(last_message.split()) < 5
-    if is_generic:
+    if is_generic and "analyze" not in last_message.lower():
          return {"next_step": "analyze_tabs"}
 
     system_prompt = (
@@ -96,13 +94,17 @@ def analyze_tabs_node(state: AgentState):
     """
     tab_context = state.get("tab_context", "")
     prompt = (
-        "You are a productivity expert. Analyze the user's open tabs and suggest a 'Todo List' or 'Next Actions'.\n"
-        "Be specific. If they have coding tabs, suggest coding tasks. If news, suggest reading.\n"
-        "Format as a Markdown list.\n"
-        f"Open Tabs: {tab_context}"
+        "You are a helpful GenTab Assistant. Analyze the user's open tabs and suggest 3-4 concrete next steps.\n"
+        "Keep it conversational but structured.\n"
+        "Format as a simple Markdown list:\n"
+        "• **Title**: Reason/Context\n\n"
+        f"OPEN TABS:\n{tab_context}"
     )
+    
     response = llm.invoke([HumanMessage(content=prompt)])
-    return {"messages": [response], "next_step": "done"}
+    content = response.content.strip()
+
+    return {"messages": [AIMessage(content=content)], "next_step": "done"}
 
 def search_node(state: AgentState):
     """
@@ -128,12 +130,18 @@ def search_node(state: AgentState):
     
     if firecrawl_app:
         try:
-            # Using Firecrawl Agent Mode
+            # Using Verified Firecrawl Agent Mode
             if hasattr(firecrawl_app, 'agent'):
                 print(f"Starting Firecrawl Agent with prompt: {research_prompt}")
-                result = firecrawl_app.agent(prompt=research_prompt, model="spark-1-mini")
                 
-                # Check for .data attribute (as per v1 docs) or use result directly
+                # Use Verified Params from test_firecrawl.py
+                result = firecrawl_app.agent(
+                    prompt=research_prompt,
+                    model="spark-1-mini",
+                    timeout=60000 
+                )
+                
+                # Check for .data attribute (verified)
                 data = getattr(result, "data", result)
                 gathered_info = f"Firecrawl Deep Research Results:\n{data}"
             else:
@@ -184,17 +192,17 @@ def chat_node(state: AgentState):
     return {"messages": [response], "next_step": "done"}
 
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-# Initialize Gemini LLM (if key exists)
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-gemini_llm = None
-if GOOGLE_API_KEY:
-    gemini_llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0,
-        google_api_key=GOOGLE_API_KEY,
-        convert_system_message_to_human=True
+from langchain_openai import ChatOpenAI
+
+# Initialize OpenAI LLM (Coding Agent)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+coding_llm = None
+if OPENAI_API_KEY:
+    coding_llm = ChatOpenAI(
+        model="gpt-5",
+        temperature=0.2,
+        api_key=OPENAI_API_KEY
     )
 
 def generation_node(state: AgentState):
@@ -203,56 +211,90 @@ def generation_node(state: AgentState):
     context_info = messages[-1].content if messages else ""
     user_request = messages[-2].content if len(messages) > 1 else ""
     
+    # 1. Determine Dynamic Theme & Layout based on Content
+    theme_prompt = (
+        f"Analyze the following content and user request:\n"
+        f"Request: {user_request}\n"
+        f"Content Snippet: {context_info[:500]}...\n\n"
+        "Select the single best design theme from this list:\n"
+        "- 'NEXUS': News/Politics (Dark, clean, crisp, hero cards, slate-900)\n"
+        "- 'CYBERPUNK': Tech/Crypto/Future (Neon accents, black bg, glitch effects, mono fonts)\n"
+        "- 'ELEGANT': Art/Literature/History (Serif fonts, cream/paper bg, gold accents, minimalist)\n"
+        "- 'CORPORATE': Finance/Business (Blue/Grey, dense data tables, white/light-grey bg, professional)\n"
+        "- 'BRUTALIST': Design/Avant-Garde (Bold borders, high contrast, raw aesthetic, large typography)\n"
+        "Output ONLY the theme name."
+    )
+    
+    selected_theme = "NEXUS" # Default
+    try:
+        # Use simpler model or same model to pick theme quickly
+        theme_response = llm.invoke([HumanMessage(content=theme_prompt)]).content.strip().upper()
+        if theme_response in ['CYBERPUNK', 'ELEGANT', 'CORPORATE', 'BRUTALIST']:
+            selected_theme = theme_response
+    except:
+        pass
+        
+    print(f"Selected Design Theme: {selected_theme}")
+
     prompt = (
-        "You are an Elite Frontend Engineer at Google Design Lab.\n"
-        "Create a SINGLE FILE HTML React dashboard using Babel standalone and Tailwind CSS.\n"
-        "The goal is to build a 'Nexus News' style interface: A stunning, premium content aggregator.\n\n"
-        f"DATA SOURCE (Use this content): {context_info}\n\n"
-        f"USER REQUEST: {user_request}\n\n"
-        "DESIGN SPECS (Pixel Perfect):\n"
-        "1.  **Theme**: Deep Dark Mode. Bg: `bg-slate-900`. Cards: `bg-slate-800` or `bg-zinc-900`. Text: `text-slate-100`.\n"
-        "2.  **Hero Section**: The top item must be a 'Hero Card' spanning full width. Use a subtle gradient background (e.g., `bg-gradient-to-r from-slate-800 to-slate-900`). Title large (`text-4xl`), bold.\n"
-        "3.  **Typography**: Use system sans-serif ('Inter'). Headers bold/extrabold. Subtitles `text-slate-400`.\n"
-        "4.  **Layout**: Responsive Grid. `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`. max-width-7xl mx-auto.\n"
-        "5.  **Components**:\n"
-        "    -   **Tags/Pills**: Use rounded-full pills for categories (e.g., `bg-blue-600/20 text-blue-400 text-xs px-3 py-1`).\n"
-        "    -   **Floating Action**: Add a fixed button at bottom-right for 'Share' or 'Menu'.\n"
-        "    -   **Search Bar**: A floating glassmorphism search bar at the top.\n"
-        "    -   **Skeleton Loading**: No skeletons, just use available data. If data is text, structure it into clean readable articles.\n"
-        "6.  **Interactivity**: `hover:scale-[1.02] transition-all duration-300` on cards.\n"
-        "7.  **Data Integration**: You MUST use the 'Firecrawl Deep Research Results'. Do not use placeholders like 'Lorem Ipsum'. Extract real titles, summaries, and facts from the provided data.\n"
-        "8.  **Output**: ONLY the raw HTML code. Do not wrap in markdown code blocks. Valid HTML5."
+        f"""You are an Elite Frontend Engineer specializing in "Google Disco" / Bento-Grid aesthetics using React & Tailwind via CDN.
+Generate a COMPLETE, SINGLE-FILE HTML Dashboard based on the user's request.
+The file must be self-contained (no external local files, use images from Unsplash if needed).
+
+THEME: **GOOGLE DISCO / GLASS BENTO**
+- **Core Aesthetic**: Dark mode (slate-950/black), Glassmorphism (bg-white/5 backdrop-blur-xl), Vibrant Gradients (Violet/Fuchsia/Cyan), Rounded-3xl cards.
+- **Layout**: Bento Grid (CSS Grid with spanning cells). Highly modular.
+- **Typography**: Inter or Outfit. Large, bold headings.
+- **Interactions**: Hover effects (scale, border glow), smooth transitions.
+
+USER REQUEST: {user_request}
+DEEP RESEARCH DATA: {context_info[:25000]}
+
+REQUIREMENTS:
+1.  **Single File**: Output pure HTML with embedded `<script type="text/babel">` for React components.
+2.  **Libraries**: Include React, ReactDOM, Babel, and TailwindCSS via CDN links in `<head>`.
+    -   Add `<script src="https://cdn.tailwindcss.com"></script>`
+    -   Add Google Fonts: `<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
+    -   Config Tailwind for font-family 'Outfit'.
+3.  **Structure**:
+    -   `App` component as the main entry.
+    -   `Dashboard` component to visualize data using a Bento Grid layout.
+    -   `BentoCard` component (glassmorphic, rounded-3xl, border-white/10).
+    -   Use `ReactDOM.createRoot(document.getElementById('root')).render(<App />)`
+4.  **Styling**: Use Tailwind utility classes for EVERYTHING.
+    -   Background: `bg-[#050505]` or `bg-slate-950`.
+    -   Cards: `bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all duration-500 group`.
+    -   Text: `text-slate-200`, Headings `text-white`, Subheadings `text-slate-400`.
+    -   Accents: Gradient text for key metrics (`bg-gradient-to-r from-violet-400 to-fuchsia-400`).
+5.  **Data**: Hydrate the dashboard with REAL FACTS from the research data. Do not use placeholder Lorem Ipsum unless absolutely necessary.
+6.  **Output Format**: Return ONLY the raw HTML string. NO markdown blocks (```html). NO explanations. Start immediately with `<!DOCTYPE html>`.
+"""
     )
     
     code = None
-    
-    # 1. Try Gemini API First (User Preference)
-    if gemini_llm:
+    # 1. Try OpenAI (Coding Agent) First
+    if coding_llm:
         try:
-            print("Generating dashboard with Gemini 1.5 Pro...")
-            response = gemini_llm.invoke([HumanMessage(content=prompt)])
+            print("Generating Single-File HTML Dashboard with GPT-4o...")
+            response = coding_llm.invoke([HumanMessage(content=prompt)])
             code = response.content
-            # Cleanup Markdown
+            
+            # Cleanup Markdown wrappers
             code = re.sub(r'^```html', '', code, flags=re.MULTILINE)
-            code = re.sub(r'^```jsx', '', code, flags=re.MULTILINE)
             code = re.sub(r'^```', '', code, flags=re.MULTILINE)
             code = code.strip()
+            
         except Exception as e:
-            print(f"Gemini API failed, falling back to Groq: {e}")
+            print(f"OpenAI API failed: {e}")
+            code = f"<h1>Generation Failed</h1><p>{e}</p>"
     
-    # 2. Fallback to Groq if Gemini failed or key missing
+    # 2. Fallback if OpenAI fails or is not configured
     if not code:
-        try:
-            print("Generating dashboard with Groq...")
-            response = llm.invoke([HumanMessage(content=prompt)])
-            code = response.content
-            code = re.sub(r'^```html', '', code, flags=re.MULTILINE)
-            code = re.sub(r'^```', '', code, flags=re.MULTILINE)
-            code = code.strip()
-        except Exception as e:
-            code = f"<h1>Error generating dashboard: {e}</h1>"
-    
-    return {"generated_dashboard_code": code, "messages": [AIMessage(content="I have generated a deep research dashboard for you.")], "next_step": "done"}
+        print("Fallback: OpenAI failed or was not configured. Generating a simple error file.")
+        code = json.dumps({"error.html": "<h1>Generation Failed</h1><p>The code generation agent (GPT-4o) could not be run. Please check your OPENAI_API_KEY.</p>"})
+
+    return {"generated_dashboard_code": code, "messages": [AIMessage(content="I have generated the full React project structure.")], "next_step": "done"}
+
 
 # --- Graph Definition ---
 workflow = StateGraph(AgentState)

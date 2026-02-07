@@ -3,6 +3,7 @@ uvicorn
 python-multipart
 langchain-groq
 langchain-google-genai
+langchain-anthropic
 langchain-community
 langchain-core
 langgraph
@@ -10,3 +11,4 @@ tavily-python
 python-dotenv
 beautifulsoup4
 firecrawl-py
+langchain-openai

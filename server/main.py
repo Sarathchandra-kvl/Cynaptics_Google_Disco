@@ -62,17 +62,22 @@ async def chat_endpoint(request: ChatRequest):
         response_data = {"response": last_message}
         
         # Check if dashboard was generated
-        if "generated_dashboard_code" in result and result["generated_dashboard_code"]:
-            dashboard_id = f"dashboard_{uuid.uuid4().hex[:8]}.html"
-            file_path = os.path.join(STATIC_DIR, dashboard_id)
-            
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(result["generated_dashboard_code"])
-            
-            response_data["action"] = "open_dashboard"
-            response_data["dashboard_url"] = f"http://localhost:8000/dashboard/{dashboard_id}"
-            response_data["response"] += " I've created a dashboard for you."
-            
+        code = result.get("generated_dashboard_code")
+        if code:
+             project_id = uuid.uuid4().hex[:8]
+             dashboard_id = f"dashboard_{project_id}.html"
+             file_path = os.path.join(STATIC_DIR, dashboard_id)
+             
+             with open(file_path, "w", encoding="utf-8") as f:
+                 f.write(code)
+             
+             # CRITICAL FIX: Use /dashboard/ (mounted path) instead of /static/
+             dashboard_url = f"http://localhost:8000/dashboard/{dashboard_id}"
+             
+             response_data["action"] = "open_dashboard"
+             response_data["dashboard_url"] = dashboard_url
+             response_data["response"] += " I've created your dashboard. Opening it now..."
+
         return response_data
 
     except Exception as e:
