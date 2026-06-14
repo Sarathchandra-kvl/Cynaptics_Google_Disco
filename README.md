@@ -151,5 +151,3 @@ No benchmark data was found in the repository logs or code. Performance will dep
 - **State Persistence:** Currently, the LangGraph state is transient per request. Implementing persistent memory across sessions would improve conversational context.
 - **Error Handling:** Add graceful fallbacks for when the OpenAI generation fails, possibly by using Groq for code generation as well.
 
-## License
-License information not found in repository.
